@@ -18,13 +18,13 @@ import packageJson from '../../package.json';
 /**
  * Backend flavor identifier for session metadata.
  */
-export type BackendFlavor = 'claude' | 'codex' | 'gemini';
+export type BackendFlavor = 'claude' | 'codex' | 'gemini' | 'kimi';
 
 /**
  * Options for creating session metadata.
  */
 export interface CreateSessionMetadataOptions {
-    /** Backend flavor (claude, codex, gemini) */
+    /** Backend flavor (claude, codex, gemini, kimi) */
     flavor: BackendFlavor;
     /** Machine ID for server identification */
     machineId: string;
