@@ -39,6 +39,37 @@ import { DEFAULT_KIMI_MODEL, CHANGE_TITLE_INSTRUCTION } from '@/kimi/constants';
 import { displayQRCode } from '@/ui/qrcode';
 
 /**
+ * Wait for any key press from stdin
+ */
+function waitForKeypress(): Promise<void> {
+  return new Promise((resolve) => {
+    const onData = () => {
+      cleanup();
+      resolve();
+    };
+    
+    const cleanup = () => {
+      process.stdin.off('data', onData);
+      try {
+        process.stdin.setRawMode(false);
+      } catch { /* ignore */ }
+    };
+    
+    // Setup raw mode to capture single keypress
+    try {
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(true);
+      }
+      process.stdin.resume();
+      process.stdin.once('data', onData);
+    } catch (error) {
+      // If we can't setup raw mode, just resolve after a timeout
+      setTimeout(resolve, 5000);
+    }
+  });
+}
+
+/**
  * Main entry point for the kimi command with ink UI
  */
 export async function runKimi(opts: {
@@ -253,9 +284,10 @@ export async function runKimi(opts: {
   // Display connection info before UI clears the screen
   displayConnectionInfo();
 
+  // Wait for user to press any key before entering UI
   if (hasTTY) {
-    // Wait a moment for user to see the connection info
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log('\n👉 Press any key to continue...');
+    await waitForKeypress();
     console.clear();
     inkInstance = render(React.createElement(KimiDisplay, {
       messageBuffer,
