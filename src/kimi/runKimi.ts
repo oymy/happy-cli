@@ -274,6 +274,9 @@ export async function runKimi(opts: {
           if (!shouldExit && messageQueue.size() === 0) {
             sendReady();
           }
+        } else if (msg.status === 'error') {
+          logger.debug('[Kimi] Error:', msg.detail);
+          messageBuffer.addMessage(`Error: ${msg.detail}`, 'status');
         }
         break;
       
@@ -315,13 +318,6 @@ export async function runKimi(opts: {
       case 'permission-request':
         // Permission handling is done via ACP
         logger.debug('[Kimi] Permission request:', msg);
-        break;
-      
-      case 'status':
-        if (msg.status === 'error') {
-          logger.debug('[Kimi] Error:', msg.detail);
-          messageBuffer.addMessage(`Error: ${msg.detail}`, 'status');
-        }
         break;
     }
   });
