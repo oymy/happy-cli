@@ -36,6 +36,7 @@ import { KimiDisplay } from '@/ui/ink/KimiDisplay';
 import type { KimiMode } from '@/kimi/types';
 import type { PermissionMode } from '@/api/types';
 import { DEFAULT_KIMI_MODEL, CHANGE_TITLE_INSTRUCTION } from '@/kimi/constants';
+import { displayQRCode } from '@/ui/qrcode';
 
 /**
  * Main entry point for the kimi command with ink UI
@@ -151,6 +152,36 @@ export async function runKimi(opts: {
     }
   };
 
+  // Display connection info for mobile app
+  function displayConnectionInfo(): void {
+    const sessionUrl = `${configuration.webappUrl}/s/${session.sessionId}`;
+    const appUrl = `happy://session?id=${session.sessionId}`;
+    
+    console.log('\n' + '='.repeat(60));
+    console.log('📱 Kimi session started!');
+    console.log('='.repeat(60));
+    console.log('\nConnect from your mobile device:');
+    console.log('\n1. Scan QR code with Happy App:');
+    
+    // Display QR code
+    try {
+      displayQRCode(appUrl);
+    } catch (e) {
+      // If QR code fails, just show the URL
+      console.log('   (QR code unavailable)');
+    }
+    
+    console.log('\n2. Or open this URL in your browser:');
+    console.log(`   ${sessionUrl}`);
+    console.log('\n3. Or manually enter session ID in the app:');
+    console.log(`   Session ID: ${session.sessionId}`);
+    console.log('='.repeat(60) + '\n');
+    
+    // Also log to debug
+    logger.debug('[Kimi] Session URL:', sessionUrl);
+    logger.debug('[Kimi] App URL:', appUrl);
+  }
+
   // Abort handling
   let abortController = new AbortController();
   let shouldExit = false;
@@ -219,7 +250,12 @@ export async function runKimi(opts: {
   const hasTTY = process.stdout.isTTY && process.stdin.isTTY;
   let inkInstance: ReturnType<typeof render> | null = null;
 
+  // Display connection info before UI clears the screen
+  displayConnectionInfo();
+
   if (hasTTY) {
+    // Wait a moment for user to see the connection info
+    await new Promise(resolve => setTimeout(resolve, 3000));
     console.clear();
     inkInstance = render(React.createElement(KimiDisplay, {
       messageBuffer,
