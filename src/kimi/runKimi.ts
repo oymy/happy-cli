@@ -139,6 +139,10 @@ export async function runKimi(opts: {
   // Track current overrides
   let currentPermissionMode: PermissionMode | undefined = undefined;
   let currentModel: string | undefined = undefined;
+  
+  // Accumulate response for sending to mobile app
+  let accumulatedResponse = '';
+  let isResponseInProgress = false;
 
   session.onUserMessage((message) => {
     // Resolve permission mode
@@ -338,6 +342,17 @@ export async function runKimi(opts: {
           thinking = false;
           session.keepAlive(thinking, 'remote');
           
+          // Send accumulated response to mobile app when response is complete
+          if (accumulatedResponse && isResponseInProgress) {
+            session.sendAgentMessage('kimi', {
+              type: 'message',
+              message: accumulatedResponse,
+            });
+            logger.debug(`[Kimi] Sent complete response to mobile app, length: ${accumulatedResponse.length}`);
+            accumulatedResponse = '';
+            isResponseInProgress = false;
+          }
+          
           // Emit ready when idle and queue empty
           if (!shouldExit && messageQueue.size() === 0) {
             sendReady();
@@ -345,6 +360,12 @@ export async function runKimi(opts: {
         } else if (msg.status === 'error') {
           logger.debug('[Kimi] Error:', msg.detail);
           messageBuffer.addMessage(`Error: ${msg.detail}`, 'status');
+          
+          // Send error to mobile app
+          session.sendAgentMessage('kimi', {
+            type: 'message',
+            message: `Error: ${msg.detail}`,
+          });
         }
         break;
       
@@ -352,13 +373,16 @@ export async function runKimi(opts: {
         thinking = true;
         session.keepAlive(thinking, 'remote');
         if (msg.textDelta) {
-          messageBuffer.addMessage(msg.textDelta, 'assistant');
-          
-          // Send to mobile app
-          session.sendAgentMessage('kimi', {
-            type: 'message',
-            message: msg.textDelta,
-          });
+          // Accumulate response instead of sending each chunk
+          accumulatedResponse += msg.textDelta;
+          if (!isResponseInProgress) {
+            messageBuffer.addMessage(msg.textDelta, 'assistant');
+            isResponseInProgress = true;
+            logger.debug(`[Kimi] Started new response, first chunk length: ${msg.textDelta.length}`);
+          } else {
+            messageBuffer.updateLastMessage(msg.textDelta, 'assistant');
+            logger.debug(`[Kimi] Updated response, chunk length: ${msg.textDelta.length}, total accumulated: ${accumulatedResponse.length}`);
+          }
         }
         break;
       
