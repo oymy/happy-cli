@@ -3,6 +3,11 @@
  *
  * This module provides the main entry point for running the Kimi agent
  * through Happy CLI via ACP protocol.
+ * 
+ * NOTE: We use 'gemini' (via SERVER_PROVIDER constant) as the provider name when calling
+ * sendAgentMessage() because the Happy Server/App currently only accepts 'gemini', 'codex',
+ * as valid providers. This is a temporary workaround until 'kimi' is added to
+ * the server's provider whitelist. The actual agent is still Kimi.
  */
 
 import { render } from 'ink';
@@ -37,6 +42,13 @@ import type { KimiMode } from '@/kimi/types';
 import type { PermissionMode } from '@/api/types';
 import { DEFAULT_KIMI_MODEL, CHANGE_TITLE_INSTRUCTION } from '@/kimi/constants';
 import { displayQRCode } from '@/ui/qrcode';
+
+/**
+ * Provider name used when sending messages to the Happy Server.
+ * Using 'gemini' as a workaround since 'kimi' is not yet in the server's provider whitelist.
+ * TODO: Change to 'kimi' once the server supports it.
+ */
+const SERVER_PROVIDER: 'gemini' = 'gemini';
 
 /**
  * Wait for any key press from stdin
@@ -226,7 +238,7 @@ export async function runKimi(opts: {
   async function handleAbort() {
     logger.debug('[Kimi] Abort requested');
     
-    session.sendAgentMessage('kimi', {
+    session.sendAgentMessage(SERVER_PROVIDER, {
       type: 'turn_aborted',
       id: randomUUID(),
     });
@@ -344,7 +356,7 @@ export async function runKimi(opts: {
           
           // Send accumulated response to mobile app when response is complete
           if (accumulatedResponse && isResponseInProgress) {
-            session.sendAgentMessage('kimi', {
+            session.sendAgentMessage(SERVER_PROVIDER, {
               type: 'message',
               message: accumulatedResponse,
             });
@@ -362,7 +374,7 @@ export async function runKimi(opts: {
           messageBuffer.addMessage(`Error: ${msg.detail}`, 'status');
           
           // Send error to mobile app
-          session.sendAgentMessage('kimi', {
+          session.sendAgentMessage(SERVER_PROVIDER, {
             type: 'message',
             message: `Error: ${msg.detail}`,
           });
@@ -389,7 +401,7 @@ export async function runKimi(opts: {
       case 'tool-call':
         thinking = true;
         session.keepAlive(thinking, 'remote');
-        session.sendAgentMessage('kimi', {
+        session.sendAgentMessage(SERVER_PROVIDER, {
           type: 'tool-call',
           callId: msg.callId,
           name: msg.toolName,
@@ -399,7 +411,7 @@ export async function runKimi(opts: {
         break;
       
       case 'tool-result':
-        session.sendAgentMessage('kimi', {
+        session.sendAgentMessage(SERVER_PROVIDER, {
           type: 'tool-result',
           callId: msg.callId,
           output: msg.result,

@@ -61,6 +61,14 @@ export async function doAuth(): Promise<Credentials | null> {
  * Display authentication method selector and return user choice
  */
 function selectAuthenticationMethod(): Promise<AuthMethod | null> {
+    // Check if running in non-TTY environment (e.g., Kimi Code CLI)
+    // In such cases, default to web authentication
+    if (!process.stdin.isTTY) {
+        console.log('\nNon-interactive terminal detected.\n');
+        console.log('Defaulting to Web Browser authentication.\n');
+        return Promise.resolve('web');
+    }
+
     return new Promise((resolve) => {
         let hasResolved = false;
 
@@ -91,7 +99,9 @@ function selectAuthenticationMethod(): Promise<AuthMethod | null> {
  * Handle mobile authentication flow
  */
 async function doMobileAuth(keypair: tweetnacl.BoxKeyPair): Promise<Credentials | null> {
-    console.clear();
+    if (process.stdin.isTTY) {
+        console.clear();
+    }
     console.log('\nMobile Authentication\n');
     console.log('Scan this QR code with your Happy mobile app:\n');
 
@@ -109,26 +119,31 @@ async function doMobileAuth(keypair: tweetnacl.BoxKeyPair): Promise<Credentials 
  * Handle web authentication flow
  */
 async function doWebAuth(keypair: tweetnacl.BoxKeyPair): Promise<Credentials | null> {
-    console.clear();
+    if (process.stdin.isTTY) {
+        console.clear();
+    }
     console.log('\nWeb Authentication\n');
 
     const webUrl = generateWebAuthUrl(keypair.publicKey);
-    console.log('Opening your browser...');
 
-    const browserOpened = await openBrowser(webUrl);
+    // Only try to open browser in TTY environments
+    if (process.stdin.isTTY) {
+        console.log('Opening your browser...');
+        const browserOpened = await openBrowser(webUrl);
 
-    if (browserOpened) {
-        console.log('✓ Browser opened\n');
-        console.log('Complete authentication in your browser window.');
-    } else {
-        console.log('Could not open browser automatically.');
+        if (browserOpened) {
+            console.log('✓ Browser opened\n');
+            console.log('Complete authentication in your browser window.');
+        } else {
+            console.log('Could not open browser automatically.');
+        }
     }
 
     // I changed this to always show the URL because we got a report from
     // someone running happy inside a devcontainer that they saw the
     // "Complete authentication in your browser window." but nothing opened.
     // https://github.com/slopus/happy/issues/19
-    console.log('\nIf the browser did not open, please copy and paste this URL:');
+    console.log('\nPlease open this URL in your browser to authenticate:');
     console.log(webUrl);
     console.log('');
 

@@ -78,6 +78,7 @@ export class ApiSessionClient extends EventEmitter {
         // Create socket
         //
 
+        logger.debug(`[API] Creating socket connection for session ${this.sessionId} to ${configuration.serverUrl}`);
         this.socket = io(configuration.serverUrl, {
             auth: {
                 token: this.token,
@@ -99,7 +100,7 @@ export class ApiSessionClient extends EventEmitter {
         //
 
         this.socket.on('connect', () => {
-            logger.debug('Socket connected successfully');
+            logger.debug(`[API] Socket connected successfully for session ${this.sessionId}, socketId=${this.socket.id}`);
             this.rpcHandlerManager.onSocketConnect(this.socket);
         })
 
@@ -128,22 +129,29 @@ export class ApiSessionClient extends EventEmitter {
                     return;
                 }
 
+                logger.debug(`[SOCKET] [UPDATE] Event type: ${data.body.t}, sessionId: ${this.sessionId}`);
+
                 if (data.body.t === 'new-message' && data.body.message.content.t === 'encrypted') {
+                    logger.debug(`[SOCKET] [UPDATE] Processing new-message event, encrypted content length: ${data.body.message.content.c?.length || 0}`);
                     const body = decrypt(this.encryptionKey, this.encryptionVariant, decodeBase64(data.body.message.content.c));
 
                     logger.debugLargeJson('[SOCKET] [UPDATE] Received update:', body)
 
                     // Try to parse as user message first
                     const userResult = UserMessageSchema.safeParse(body);
+                    logger.debug(`[SOCKET] [UPDATE] UserMessageSchema validation: ${userResult.success ? 'SUCCESS' : 'FAILED - ' + JSON.stringify(userResult.error?.issues)}, hasCallback: ${!!this.pendingMessageCallback}`);
                     if (userResult.success) {
                         // Server already filtered to only our session
+                        logger.debug(`[SOCKET] [UPDATE] User message validated, delivering to callback. Pending messages queue size: ${this.pendingMessages.length}`);
                         if (this.pendingMessageCallback) {
                             this.pendingMessageCallback(userResult.data);
                         } else {
+                            logger.debug(`[SOCKET] [UPDATE] No callback registered, queuing message`);
                             this.pendingMessages.push(userResult.data);
                         }
                     } else {
                         // If not a user message, it might be a permission response or other message type
+                        logger.debug(`[SOCKET] [UPDATE] Message not a user message, emitting as generic message event`);
                         this.emit('message', body);
                     }
                 } else if (data.body.t === 'update-session') {
