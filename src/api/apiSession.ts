@@ -288,9 +288,9 @@ export class ApiSessionClient extends EventEmitter {
     }
 
     /**
-     * Send a generic agent message to the session using ACP (Agent Communication Protocol) format.
-     * Works for any agent type (Gemini, Codex, Claude, etc.) - CLI normalizes to unified ACP format.
-     * 
+     * Send a generic agent message to the session using codex-compatible format.
+     * Uses 'codex' wire type for broad client compatibility (older apps lack 'acp' support).
+     *
      * @param provider - The agent provider sending the message (e.g., 'gemini', 'codex', 'claude')
      * @param body - The message payload (type: 'message' | 'reasoning' | 'tool-call' | 'tool-result')
      */
@@ -298,16 +298,15 @@ export class ApiSessionClient extends EventEmitter {
         let content = {
             role: 'agent',
             content: {
-                type: 'acp',
-                provider,
+                type: 'codex',
                 data: body
             },
             meta: {
                 sentFrom: 'cli'
             }
         };
-        
-        logger.debug(`[SOCKET] Sending ACP message from ${provider}:`, { type: body.type, hasMessage: 'message' in body });
+
+        logger.debug(`[SOCKET] Sending codex message from ${provider}:`, { type: body.type, hasMessage: 'message' in body });
         
         const encrypted = encodeBase64(encrypt(this.encryptionKey, this.encryptionVariant, content));
         this.socket.emit('message', {

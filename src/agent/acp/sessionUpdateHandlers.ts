@@ -507,10 +507,25 @@ export function handleLegacyMessageChunk(
 
   const chunk = update.messageChunk;
   if (chunk.textDelta) {
+    logger.debug(`[AcpBackend] Received legacy message chunk (length: ${chunk.textDelta.length}): ${chunk.textDelta.substring(0, 50)}...`);
     ctx.emit({
       type: 'model-output',
       textDelta: chunk.textDelta,
     });
+
+    // Reset idle timeout - same logic as handleAgentMessageChunk
+    ctx.clearIdleTimeout();
+
+    const idleTimeoutMs = ctx.transport.getIdleTimeout?.() ?? DEFAULT_IDLE_TIMEOUT_MS;
+    ctx.setIdleTimeout(() => {
+      if (ctx.activeToolCalls.size === 0) {
+        logger.debug('[AcpBackend] No more legacy chunks received, emitting idle status');
+        ctx.emitIdleStatus();
+      } else {
+        logger.debug(`[AcpBackend] Delaying idle status - ${ctx.activeToolCalls.size} active tool calls`);
+      }
+    }, idleTimeoutMs);
+
     return { handled: true };
   }
 
