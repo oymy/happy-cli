@@ -92,9 +92,6 @@ export const KimiDisplay: React.FC<KimiDisplayProps> = ({ messageBuffer, logPath
             {msg.type === 'status' && (
               <Text color="blue">{msg.content}</Text>
             )}
-            {msg.type === 'status' && (
-              <Text color="blue">{msg.content}</Text>
-            )}
           </Box>
         ))}
       </Box>

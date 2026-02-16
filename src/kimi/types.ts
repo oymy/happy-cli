@@ -5,6 +5,7 @@
  */
 
 import type { PermissionMode } from '@/api/types';
+import type { McpServerConfig } from '@/agent/core';
 
 /**
  * Mode configuration for Kimi messages
@@ -23,7 +24,7 @@ export interface KimiSessionConfig {
   /** Model to use */
   model?: string;
   /** MCP server configurations */
-  mcpServers?: Record<string, any>;
+  mcpServers?: Record<string, McpServerConfig>;
 }
 
 /**
@@ -35,5 +36,5 @@ export interface KimiLocalConfig {
   /** API key (rarely stored in config, usually via kimi login) */
   apiKey?: string;
   /** Other config fields */
-  [key: string]: any;
+  [key: string]: string | undefined;
 }

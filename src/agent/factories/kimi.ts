@@ -92,9 +92,7 @@ export function createKimiBackend(options: KimiBackendOptions): KimiBackendResul
   };
 
   // Determine model source for logging
-  const modelSource = options.model ? 'explicit' : 
-                      process.env[KIMI_API_KEY_ENV] ? 'env-var' : 
-                      'default';
+  const modelSource = options.model ? 'explicit' : 'default';
 
   logger.debug('[Kimi] Creating ACP backend with options:', {
     cwd: backendOptions.cwd,

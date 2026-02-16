@@ -18,9 +18,8 @@ kimi info
 ### 2. 构建项目
 
 ```bash
-cd /Users/oymyisme/study/happy-cli
-npm install
-npm run build
+yarn install
+yarn build
 ```
 
 ### 3. 运行单元测试
@@ -118,6 +117,10 @@ src/kimi/
 ├── runKimi.ts          # 主入口
 ├── types.ts            # 类型定义
 ├── constants.ts        # 常量
+├── utils/
+│   ├── permissionHandler.ts   # 权限处理
+│   ├── reasoningProcessor.ts  # 思考/推理转发
+│   └── diffProcessor.ts       # 文件差异跟踪
 └── __tests__/          # 测试
     ├── constants.test.ts
     └── integration.test.ts
